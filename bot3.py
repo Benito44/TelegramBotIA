@@ -113,9 +113,8 @@ async def productes(update, context):
             return
 
         # Dividim els missatges en blocs per evitar excedir el límit de caràcters
-        for i in range(0, len(resultats), 10):  # Blocs de 10 productes
-            message = "\n\n".join(resultats[i:i + 10])
-            await update.message.reply_text(message)
+        message = "\n\n".join(resultats)
+        await update.message.reply_text(message)
 
     except Exception as e:
         print(f"Error: {e}")
