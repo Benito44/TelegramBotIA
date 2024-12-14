@@ -63,17 +63,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     )
 
     
-# async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
-#     await update.message.reply_text("Soc un bot amb comandes /start, /help , /hora, /encuesta, /photo, /productes")
+async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Soc un bot amb comandes /start, /productes , /imatge")
 
-# async def hora(update: Update, context: ContextTypes.DEFAULT_TYPE):
-#     missatge = str(datetime.datetime.now())
-#     await update.message.reply_text(missatge)
-    
-# async def respondre(update: Update, context: ContextTypes.DEFAULT_TYPE):
-#     respondre = str(datetime.datetime.now())
-#     await update.message.reply_text(respondre)
-    
 # async def suma(update, context):
 #     try:
 #         x = float(context.args[0])
@@ -90,35 +82,68 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         
 async def productes(update, context):
     try:
-        # Recuperem la categoria ID
+        # Comprovem si s'ha passat un argument
         if len(context.args) == 0:
-            await update.message.reply_text("⚠️ Proporcioni un ID de categoria com a argument.")
+            await update.message.reply_text("⚠️ Proporcioni un ID de producte com a argument.")
             return
 
-        categoria_id = int(context.args[0])
+        # Recuperem l'ID de producte de l'argument
+        producte_id = str(context.args[0])
 
-        # Cerquem productes a la base de dades
-        cursor = productos_collection.find({'categoria_id': categoria_id})
-        resultats = [
-            f"🛒 {producte.get('display_name', 'Sense nom')}\n"
-            f"💶 Preu: {producte.get('preu', 'No disponible')}€\n"
-            f"🆕 Nou: {'Sí' if producte.get('nou_producte', False) else 'No'}\n"
-            f"🖼️ Imatge: {producte.get('thumbnail', 'No disponible')}\n"
-            for producte in cursor
-        ]
+        # Cerquem el producte a la base de dades
+        producte = productos_collection.find_one({'id': producte_id})
 
-        # Comprovem si hi ha resultats
-        if not resultats:
-            await update.message.reply_text(f"No s'han trobat productes per a la categoria ID {categoria_id}.")
+        # Comprovem si s'ha trobat el producte
+        if not producte:
+            await update.message.reply_text(f"No s'ha trobat cap producte amb l'ID {producte_id}.")
             return
 
-        # Dividim els missatges en blocs per evitar excedir el límit de caràcters
-        message = "\n\n".join(resultats)
-        await update.message.reply_text(message)
+        # Preparem la resposta amb la informació del producte
+        resposta = (
+            f"🛒 *Id*: {producte.get('id', 'Sense ID')}\n"
+            f"🛒 *Nom*: {producte.get('display_name', 'Sense nom')}\n"
+            f"💶 *Preu*: {producte.get('preu', 'No disponible')}€\n"
+            f"🆕 *Nou*: {'Sí' if producte.get('nou_producte', False) else 'No'}\n"
+        )
+
+        # Enviem la resposta al xat
+        await update.message.reply_text(resposta, parse_mode='Markdown')
 
     except Exception as e:
         print(f"Error: {e}")
-        await update.message.reply_text("💥 Ha ocorregut un error en recuperar els productes.")
+        await update.message.reply_text("💥 Ha ocorregut un error en recuperar el producte.")
+
+async def imatge(update, context):
+    try:
+        # Comprovem si s'ha passat un argument
+        if len(context.args) == 0:
+            await update.message.reply_text("⚠️ Proporcioni un ID de producte com a argument.")
+            return
+
+        # Recuperem l'ID de producte de l'argument
+        producte_id = str(context.args[0])
+
+        # Cerquem el producte a la base de dades
+        producte = productos_collection.find_one({'id': producte_id})
+
+        # Comprovem si s'ha trobat el producte
+        if not producte:
+            await update.message.reply_text(f"No s'ha trobat cap producte amb l'ID {producte_id}.")
+            return
+
+        # Preparem la resposta amb la imatge del producte
+        resposta = (
+            f"🖼️ *Imatge*: [Enllaç a la imatge]({producte.get('thumbnail', 'No disponible')})"
+        )
+
+        # Enviem la resposta al xat
+        await update.message.reply_text(resposta, parse_mode='Markdown')
+
+    except Exception as e:
+        print(f"Error: {e}")
+        await update.message.reply_text("💥 Ha ocorregut un error en recuperar el producte.")
+
+
 
 
 async def poll(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -148,9 +173,8 @@ def main():
     application = Application.builder().token(TOKEN).build()
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help))
-    application.add_handler(CommandHandler("photo", photo))
     application.add_handler(CommandHandler("productes", productes))
-    application.add_handler(CommandHandler("encuesta", poll))
+    application.add_handler(CommandHandler("imatge", imatge))
     # Run the bot until the user presses Ctrl-C
     application.run_polling()
 
