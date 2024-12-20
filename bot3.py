@@ -64,21 +64,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     
 async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Soc un bot amb comandes /start, /productes , /imatge")
+    await update.message.reply_text("Soc un bot amb comandes /start, /productes, /imatge, /carro_compra, /factura")
 
-# async def suma(update, context):
-#     try:
-#         x = float(context.args[0])
-#         y = float(context.args[1])
-#         s = x + y
-#         message = await context.bot.send_message(
-#             chat_id=update.effective_chat.id,
-#             text=str(s))
-#     except Exception as e:
-#         print(e)
-#         message = await context.bot.send_message(
-#             chat_id=update.effective_chat.id,
-#             text='💣')
         
 async def productes(update, context):
     try:
@@ -146,7 +133,7 @@ async def imatge(update, context):
 # Diccionari global per guardar l'estat de cada usuari
 grup_compra = {}
 
-async def carro_compra(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def carro_compra(update, context):
     try:
         # Obtenim l'ID de l'usuari
         user_id = update.effective_user.id
@@ -196,6 +183,20 @@ async def carro_compra(update: Update, context: ContextTypes.DEFAULT_TYPE):
         print(f"Error: {e}")
         await update.message.reply_text("💥 Ha ocorregut un error processant la compra.")
 
+async def factura(update, context):
+    try:
+        # Enviem la suma acumulada a l'usuari
+        await update.message.reply_text(
+            f"✅ Compra actualitzada: {grup_compra}€"
+        )
+
+    except ValueError:
+        # Això captura errors en la conversió a números (ex. si la quantitat no és un enter)
+        await update.message.reply_text("⚠️ Proporciona una quantitat vàlida com a segon argument.")
+    except Exception as e:
+        # Captura d'altres errors inesperats
+        print(f"Error: {e}")
+        await update.message.reply_text("💥 Ha ocorregut un error processant la compra.")
 
 
 
@@ -229,7 +230,9 @@ def main():
     application.add_handler(CommandHandler("productes", productes))
     application.add_handler(CommandHandler("imatge", imatge))
     application.add_handler(CommandHandler("carro_compra", carro_compra))
-    # Run the bot until the user presses Ctrl-C
+    application.add_handler(CommandHandler("factura", factura))
+
+    
     application.run_polling()
 
 
