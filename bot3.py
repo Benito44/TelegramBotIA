@@ -4,8 +4,6 @@
 # importa l'API de Telegram
 from telegram.ext import Application, CommandHandler,ContextTypes
 from telegram import Update
-import datetime
-import json
 from pymongo import MongoClient
 import requests
 from urllib import request
@@ -18,39 +16,6 @@ db = client_atlas.supermercats
 
 categorias_collection = db['categories']
 productos_collection = db['productes']
-
-
-def get_data_from_api():
-    url = "https://tienda.mercadona.es/api/categories/112"
-    headers = {"Content-Type": "application/json"}
-    try:
-        response = requests.get(url, headers=headers)
-        if response.status_code == 200:
-            return response
-    except Exception as e:
-        print(f"Error recuperant dades de l'api: {e}")
-    return None
-
-data = get_data_from_api().json()
-
-def importar_dades(data):
-    for result in data['categories']:
-        categoria_id = result['id']
-        categoria_layout = result['layout']    
-        for categoria in result['products']:
-            nou_producte = categoria['price_instructions']
-            productos_collection.insert_one({
-                'id': categoria['id'],
-                'display_name': categoria['display_name'],
-                'categoria_id': categoria_id,
-                'nivell': categoria_layout,
-                'nou_producte': nou_producte['is_new'],
-                'preu': nou_producte['unit_price']
-            })
-    return print ("Dades importades")
-
-
-
 
       
 # defineix una funció que saluda i que s'executarà quan el bot rebi el missatge /start
@@ -93,7 +58,7 @@ async def productes(update, context):
             f"🆕 *Nou*: {'Sí' if producte.get('nou_producte', False) else 'No'}\n"
         )
 
-        # Enviem la resposta al xat
+        # Enviem la resposta al xat amb un format més visual
         await update.message.reply_text(resposta, parse_mode='Markdown')
 
     except Exception as e:
@@ -107,10 +72,8 @@ async def imatge(update, context):
             await update.message.reply_text("⚠️ Proporcioni un ID de producte com a argument.")
             return
 
-        # Recuperem l'ID de producte de l'argument
         producte_id = str(context.args[0])
 
-        # Cerquem el producte a la base de dades
         producte = productos_collection.find_one({'id': producte_id})
 
         # Comprovem si s'ha trobat el producte
@@ -140,7 +103,7 @@ async def carro_compra(update, context):
 
         # Inicialitzem la suma de l'usuari si no existeix
         if user_id not in grup_compra:
-            grup_compra[user_id] = 0  # Inicialitzem a 0
+            grup_compra[user_id] = {}
 
         # Comprovem que s'han passat tots dos arguments (ID del producte i quantitat)
         if len(context.args) < 2:
@@ -150,60 +113,75 @@ async def carro_compra(update, context):
             return
 
         # Recuperem l'ID de producte i la quantitat de l'argument
-        producte_id = str(context.args[0])  # El primer argument és l'ID del producte
-        quantitat = int(context.args[1])  # El segon argument és la quantitat a afegir
+        producte_id = str(context.args[0]) 
+        quantitat = int(context.args[1])  
 
-        # Cerquem el producte a la base de dades
         producte = productos_collection.find_one({'id': producte_id})
 
-        # Comprovem si s'ha trobat el producte
         if not producte:
             await update.message.reply_text(f"No s'ha trobat cap producte amb l'ID {producte_id}.")
             return
 
-        # Recuperem el preu del producte
-        preu = float(producte.get('preu', 0))
-
-
         if producte_id in grup_compra[user_id]:
             grup_compra[user_id][producte_id] += quantitat
         else:
-            grup_compra[user_id][producte_id] = quantitat
-            
-            
-                # Calculem el cost total per la quantitat
-        cost = preu * quantitat    
-        # Actualitzem la suma acumulada per l'usuari
-        grup_compra[user_id] += cost
-
-        # Enviem la suma acumulada a l'usuari
-        await update.message.reply_text(
-            f"✅ Compra actualitzada: {grup_compra[user_id]:.2f}€"
+            grup_compra[user_id][producte_id] = quantitat 
+        
+        # Calcula el total acumulat de la compra
+        total = sum(
+            float(producte.get('preu', 0)) * quantitat
+            for producte_id, quantitat in grup_compra[user_id].items()
+            if (producte := productos_collection.find_one({'id': producte_id}))
         )
-
+        resposta = "Carro" 
+        resposta += f"💰 *Total acumulat:* {total:.2f}€"
+        
+                # Enviem la suma acumulada a l'usuari
+        await update.message.reply_text(
+            f"✅ Compra actualitzada:\n {resposta}"
+        )
+        
     except ValueError:
-        # Això captura errors en la conversió a números (ex. si la quantitat no és un enter)
         await update.message.reply_text("⚠️ Proporciona una quantitat vàlida com a segon argument.")
     except Exception as e:
         # Captura d'altres errors inesperats
         print(f"Error: {e}")
-        await update.message.reply_text("💥 Ha ocorregut un error processant la compra.")
+        await update.message.reply_text("💥 Ha ocorregut un error en la compra.")
 
-async def factura(update):
+async def factura(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
-        # Enviem la suma acumulada a l'usuari
-        await update.message.reply_text(
-            f"✅ Compra actualitzada: {grup_compra}€"
-        )
+        # Obtenim l'ID de l'usuari
+        user_id = update.effective_user.id
+        
+        # Comprovem si l'usuari té compres registrades
+        if user_id not in grup_compra or not grup_compra[user_id]:
+            await update.message.reply_text("⚠️ Encara no tens cap compra registrada.")
+            return
 
-    except ValueError:
-        # Això captura errors en la conversió a números (ex. si la quantitat no és un enter)
-        await update.message.reply_text("⚠️ Proporciona una quantitat vàlida com a segon argument.")
+        # Generem la factura detallada
+        factura_text = "🧾 Factura:\n\n"
+        total = 0
+
+        for producte_id, quantitat in grup_compra[user_id].items():
+            producte = productos_collection.find_one({'id': producte_id})
+            if not producte:
+                continue  # Si el producte no es troba, l'ignorem
+
+            preu = float(producte.get('preu', 0))
+            subtotal = preu * quantitat
+            total += subtotal
+
+            # Afegim línia del producte a la factura
+            factura_text += f"- {producte.get('nom', 'Producte')} (ID: {producte_id}): {quantitat} x {preu:.2f}€ = {subtotal:.2f}€\n"
+
+        factura_text += f"\n💰 Total: {total:.2f}€"
+
+        # Enviem la factura al xat
+        await update.message.reply_text(factura_text)
+
     except Exception as e:
-        # Captura d'altres errors inesperats
         print(f"Error: {e}")
-        await update.message.reply_text("💥 Ha ocorregut un error processant la compra.")
-
+        await update.message.reply_text("💥 Ha ocorregut un error generant la factura.")
 
 
 async def poll(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
