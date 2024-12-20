@@ -35,7 +35,7 @@ async def productes(update, context):
     try:
         # Comprovem si s'ha passat un argument
         if len(context.args) == 0:
-            await update.message.reply_text("⚠️ Proporcioni un ID de producte com a argument.")
+            await update.message.reply_text("⚠️ Proporcioni un ID de producte com a argument. /productes 4240")
             return
 
         # Recuperem l'ID de producte de l'argument
@@ -68,7 +68,7 @@ async def imatge(update, context):
     try:
         # Comprovem si s'ha passat un argument
         if len(context.args) == 0:
-            await update.message.reply_text("⚠️ Proporcioni un ID de producte com a argument.")
+            await update.message.reply_text("⚠️ Proporcioni un ID de producte com a argument. /imatge 4240")
             return
 
         producte_id = str(context.args[0])
@@ -107,7 +107,7 @@ async def carro_compra(update, context):
         # Comprovem que s'han passat tots dos arguments (ID del producte i quantitat)
         if len(context.args) < 2:
             await update.message.reply_text(
-                f"⚠️ Proporciona un ID de producte i una quantitat. Suma actual: {grup_compra[user_id]}"
+                f"⚠️ Proporciona un ID de producte i una quantitat. Suma actual: {grup_compra[user_id]} /carro_compra 4240 1"
             )
             return
 
