@@ -30,16 +30,20 @@ El funcionament del bot consta de varies funcions per executar el resultat final
 ![alt text](producte.png)
 
 4. ### /imatge
-    - Aquesta funció fa el mateix que **/productes** 
+    - Aquesta funció fa el mateix que **/productes** pero mostra la imatge del producte
 
-![alt text](start.png)
+![alt text](imatge.png)
 
 5. ### /carro_compra
-    - Funció simple que serveix per enviar un missatge de confirmació d'execució correcte del bot de Telegram
+    - Aquesta funció passant-li l'ID y la quantitat del producte agafa el preu amb el primer parametre i aquest li multipliquem pel segon parametre on trobem la quantitat que li volem aplicar. També obté l'ID per guardar-ho per després.
 
-![alt text](start.png)
+    - Després de fer el càlcul mostra el total, si es torna a executar amb un ID o una quantitat diferent, aquest càcul és sumarà al total complet, mostrant el progres.
+
+![alt text](carro_compra.png)
 
 6. ### /factura
-    - Funció simple que serveix per enviar un missatge de confirmació d'execució correcte del bot de Telegram
+    - Aquesta funció de millora s'executa sense cap parametre i mostra una factura més detallada amb l'ID del producte demanat, el seu preu inicial, la quantitat y el total calculat.
 
-![alt text](start.png)
+    - Obté l'ID i la quantitat guardat en la funció anterior per trobar el preu original y calcular el total
+
+![alt text](factura.png)
