@@ -164,9 +164,15 @@ async def carro_compra(update, context):
         # Recuperem el preu del producte
         preu = float(producte.get('preu', 0))
 
-        # Calculem el cost total per la quantitat
-        cost = preu * quantitat
 
+        if producte_id in grup_compra[user_id]:
+            grup_compra[user_id][producte_id] += quantitat
+        else:
+            grup_compra[user_id][producte_id] = quantitat
+            
+            
+                # Calculem el cost total per la quantitat
+        cost = preu * quantitat    
         # Actualitzem la suma acumulada per l'usuari
         grup_compra[user_id] += cost
 
@@ -183,7 +189,7 @@ async def carro_compra(update, context):
         print(f"Error: {e}")
         await update.message.reply_text("💥 Ha ocorregut un error processant la compra.")
 
-async def factura(update, context):
+async def factura(update):
     try:
         # Enviem la suma acumulada a l'usuari
         await update.message.reply_text(
