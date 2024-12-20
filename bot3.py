@@ -143,6 +143,59 @@ async def imatge(update, context):
         print(f"Error: {e}")
         await update.message.reply_text("💥 Ha ocorregut un error en recuperar el producte.")
 
+# Diccionari global per guardar l'estat de cada usuari
+grup_compra = {}
+
+async def carro_compra(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        # Obtenim l'ID de l'usuari
+        user_id = update.effective_user.id
+
+        # Inicialitzem la suma de l'usuari si no existeix
+        if user_id not in grup_compra:
+            grup_compra[user_id] = 0  # Inicialitzem a 0
+
+        # Comprovem que s'han passat tots dos arguments (ID del producte i quantitat)
+        if len(context.args) < 2:
+            await update.message.reply_text(
+                f"⚠️ Proporciona un ID de producte i una quantitat. Suma actual: {grup_compra[user_id]}"
+            )
+            return
+
+        # Recuperem l'ID de producte i la quantitat de l'argument
+        producte_id = str(context.args[0])  # El primer argument és l'ID del producte
+        quantitat = int(context.args[1])  # El segon argument és la quantitat a afegir
+
+        # Cerquem el producte a la base de dades
+        producte = productos_collection.find_one({'id': producte_id})
+
+        # Comprovem si s'ha trobat el producte
+        if not producte:
+            await update.message.reply_text(f"No s'ha trobat cap producte amb l'ID {producte_id}.")
+            return
+
+        # Recuperem el preu del producte
+        preu = float(producte.get('preu', 0))
+
+        # Calculem el cost total per la quantitat
+        cost = preu * quantitat
+
+        # Actualitzem la suma acumulada per l'usuari
+        grup_compra[user_id] += cost
+
+        # Enviem la suma acumulada a l'usuari
+        await update.message.reply_text(
+            f"✅ Compra actualitzada: {grup_compra[user_id]:.2f}€"
+        )
+
+    except ValueError:
+        # Això captura errors en la conversió a números (ex. si la quantitat no és un enter)
+        await update.message.reply_text("⚠️ Proporciona una quantitat vàlida com a segon argument.")
+    except Exception as e:
+        # Captura d'altres errors inesperats
+        print(f"Error: {e}")
+        await update.message.reply_text("💥 Ha ocorregut un error processant la compra.")
+
 
 
 
@@ -175,6 +228,7 @@ def main():
     application.add_handler(CommandHandler("help", help))
     application.add_handler(CommandHandler("productes", productes))
     application.add_handler(CommandHandler("imatge", imatge))
+    application.add_handler(CommandHandler("carro_compra", carro_compra))
     # Run the bot until the user presses Ctrl-C
     application.run_polling()
 
