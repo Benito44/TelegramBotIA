@@ -5,7 +5,6 @@
 from telegram.ext import Application, CommandHandler,ContextTypes
 from telegram import Update
 from pymongo import MongoClient
-import requests
 from urllib import request
 from pymongo import MongoClient
 from bson.json_util import dumps
@@ -182,25 +181,6 @@ async def factura(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         print(f"Error: {e}")
         await update.message.reply_text("💥 Ha ocorregut un error generant la factura.")
-
-
-async def poll(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Sends a predefined poll"""
-    questions = ["Muy Malo", "Malo", "Bueno", "Muy Bueno"]
-    message = await context.bot.send_poll(
-        update.effective_chat.id,
-        "Que tipo de estudiante eres?",
-        questions,
-        is_anonymous=False,
-        allows_multiple_answers=True,
-    )
-
-
-async def photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Sends a predefined poll"""
-    
-    message = await context.bot.send_photo(chat_id=update.effective_chat.id, photo=open('./bicing.png', 'rb')
-                    )
     
 
 def main():
